@@ -1,8 +1,37 @@
-# Context Engineering Template
+# Context Engineering Template (daviesgeek's version)
+
+## Overview
 
 A comprehensive template for getting started with Context Engineering - the discipline of engineering context for AI coding assistants so they have the information necessary to get the job done end to end.
 
 > **Context Engineering is 10x better than prompt engineering and 100x better than vibe coding.**
+
+## daviesgeek's notes
+
+I've made some changes to fit my workflow better. The main change is a **staged PRP workflow** that allows:
+
+- **Better source control** - Track prompts and PRPs through their lifecycle
+- **State tracking** - Easy to see where you left off and resume work
+- **Parallel workflows** - Multiple Claude Code instances can work on different PRPs simultaneously
+
+### Staged PRP Workflow
+
+The directory structure takes inspiration from the [Johnny Decimal](https://johnnydecimal.com/) system to organize PRPs through their lifecycle:
+
+1. **`00-Prompts/`** - Initial feature requests (INITIAL.md files)
+2. **`01-Drafts/`** - Draft PRPs being refined and reviewed
+3. **`10-Ready/`** - Approved PRPs ready to execute
+4. **`30-In-Progress/`** - PRPs currently being implemented
+5. **`40-Done/`** - Completed PRPs with implemented features
+6. **`99-Archive/`** - Archived PRPs no longer needed
+
+Additionally:
+- **`98-Templates/`** - Base templates for creating new PRPs and prompts
+- **`examples/`** - Example PRPs and INITIAL files for reference
+
+**Note:** The gap between `10-Ready` and `30-In-Progress` (e.g., 20-X) is intentional, allowing you to add custom workflow stages like `20-Approved`, `20-Scheduled`, or other states that fit your process.
+
+See the [Template Structure](#template-structure) section for the complete directory layout, and [The PRP Workflow](#the-prp-workflow) section for detailed usage instructions.
 
 ## 🚀 Quick Start
 
@@ -18,15 +47,20 @@ cd Context-Engineering-Intro
 # Place relevant code examples in the examples/ folder
 
 # 4. Create your initial feature request
-# Edit INITIAL.md with your feature requirements
+# Create a file in PRPs/00-Prompts/ with your feature requirements
+# Example: PRPs/00-Prompts/my-feature.md
 
 # 5. Generate a comprehensive PRP (Product Requirements Prompt)
 # In Claude Code, run:
-/generate-prp INITIAL.md
+/generate-prp PRPs/00-Prompts/my-feature.md
 
-# 6. Execute the PRP to implement your feature
+# 6. Review and approve the generated PRP
+# The PRP will be in PRPs/01-Drafts/
+# Move it to PRPs/10-Ready/ when satisfied
+
+# 7. Execute the PRP to implement your feature
 # In Claude Code, run:
-/execute-prp PRPs/your-feature-name.md
+/execute-prp PRPs/10-Ready/my-feature.md
 ```
 
 ## 📚 Table of Contents
@@ -72,14 +106,17 @@ context-engineering-intro/
 │   │   └── execute-prp.md     # Executes PRPs to implement features
 │   └── settings.local.json    # Claude Code permissions
 ├── PRPs/
-│   ├── templates/
-│   │   └── prp_base.md       # Base template for PRPs
-│   └── EXAMPLE_multi_agent_prp.md  # Example of a complete PRP
+│   ├── 00-Prompts/           # Initial feature requests (INITIAL.md files)
+│   ├── 01-Drafts/            # Draft PRPs being refined
+│   ├── 10-Ready/             # Approved PRPs ready to execute
+│   ├── 30-In-Progress/       # PRPs currently being implemented
+│   ├── 40-Done/              # Completed PRPs
+│   ├── 99-Archive/           # Archived PRPs
+│   ├── 98-Templates/         # Base templates for PRPs and prompts
+│   └── examples/             # Example PRPs and INITIAL files
 ├── examples/                  # Your code examples (critical!)
 ├── CLAUDE.md                 # Global rules for AI assistant
-├── INITIAL.md               # Template for feature requests
-├── INITIAL_EXAMPLE.md       # Example feature request
-└── README.md                # This file
+└── README.md                 # This file
 ```
 
 This template doesn't focus on RAG and tools with context engineering because I have a LOT more in store for that soon. ;)
@@ -100,7 +137,7 @@ The `CLAUDE.md` file contains project-wide rules that the AI assistant will foll
 
 ### 2. Create Your Initial Feature Request
 
-Edit `INITIAL.md` to describe what you want to build:
+Create a new file in `PRPs/00-Prompts/` to describe what you want to build (e.g., `PRPs/00-Prompts/my-feature.md`):
 
 ```markdown
 ## FEATURE:
@@ -116,7 +153,7 @@ Edit `INITIAL.md` to describe what you want to build:
 [Mention any gotchas, specific requirements, or things AI assistants commonly miss]
 ```
 
-**See `INITIAL_EXAMPLE.md` for a complete example.**
+**See `PRPs/examples/INITIAL_EXAMPLE.md` for a complete example.**
 
 ### 3. Generate the PRP
 
@@ -131,35 +168,54 @@ They are similar to PRDs (Product Requirements Documents) but are crafted more s
 
 Run in Claude Code:
 ```bash
-/generate-prp INITIAL.md
+/generate-prp PRPs/00-Prompts/my-feature.md
 ```
 
 **Note:** The slash commands are custom commands defined in `.claude/commands/`. You can view their implementation:
 - `.claude/commands/generate-prp.md` - See how it researches and creates PRPs
 - `.claude/commands/execute-prp.md` - See how it implements features from PRPs
 
-The `$ARGUMENTS` variable in these commands receives whatever you pass after the command name (e.g., `INITIAL.md` or `PRPs/your-feature.md`).
+The `$ARGUMENTS` variable in these commands receives whatever you pass after the command name.
 
 This command will:
-1. Read your feature request
+
+1. Read your feature request from `00-Prompts/`
 2. Research the codebase for patterns
 3. Search for relevant documentation
-4. Create a comprehensive PRP in `PRPs/your-feature-name.md`
+4. Create a comprehensive PRP in `PRPs/01-Drafts/my-feature.md`
 
-### 4. Execute the PRP
+### 4. Review and Approve
 
-Once generated, execute the PRP to implement your feature:
+Once the PRP is generated in `01-Drafts/`:
+
+1. Review the implementation plan
+2. Check that all context and requirements are captured
+3. Make any necessary edits
+4. Move the file to `10-Ready/` when satisfied
 
 ```bash
-/execute-prp PRPs/your-feature-name.md
+mv PRPs/01-Drafts/my-feature.md PRPs/10-Ready/my-feature.md
+```
+
+### 5. Execute the PRP
+
+Execute the approved PRP to implement your feature:
+
+```bash
+/execute-prp PRPs/10-Ready/my-feature.md
 ```
 
 The AI coding assistant will:
-1. Read all context from the PRP
-2. Create a detailed implementation plan
-3. Execute each step with validation
-4. Run tests and fix any issues
-5. Ensure all success criteria are met
+
+1. Read all context from the PRP in `10-Ready/`
+2. Move the PRP to `30-In-Progress/` (tracking active work)
+3. Create a detailed implementation plan
+4. Execute each step with validation
+5. Run tests and fix any issues
+6. Ensure all success criteria are met
+7. Move the completed PRP to `40-Done/`
+
+**Parallel Workflows:** Multiple Claude Code instances can work simultaneously on different PRPs in `30-In-Progress/` without conflicts.
 
 ## Writing Effective INITIAL.md Files
 
@@ -220,7 +276,7 @@ The command follows this process:
 5. **Iterate**: Fixes any issues found
 6. **Complete**: Ensures all requirements met
 
-See `PRPs/EXAMPLE_multi_agent_prp.md` for a complete example of what gets generated.
+See `PRPs/examples/EXAMPLE_multi_agent_prp.md` for a complete example of what gets generated.
 
 ## Using Examples Effectively
 
