@@ -8,8 +8,14 @@ A comprehensive template for getting started with Context Engineering - the disc
 
 ## daviesgeek's notes
 
-I've made some changes to fit my workflow better. The main change is a **staged PRP workflow** that allows:
+I've made some changes to fit my workflow better. The main changes are:
 
+### Key Improvements
+
+- **Staged PRP workflow** - PRPs move through lifecycle stages (Prompts → Drafts → Ready → In-Progress → Done)
+- **New review step** - Added a review/approval gate between PRP generation and execution
+- **Automatic stage management** - The `/execute-prp` command automatically moves PRPs between stages
+- **Date-prefixed PRPs** - Generated PRPs are prefixed with `YYYY-MM-DD` for better organization
 - **Better source control** - Track prompts and PRPs through their lifecycle
 - **State tracking** - Easy to see where you left off and resume work
 - **Parallel workflows** - Multiple Claude Code instances can work on different PRPs simultaneously
@@ -184,7 +190,9 @@ This command will:
 3. Search for relevant documentation
 4. Create a comprehensive PRP in `PRPs/01-Drafts/my-feature.md`
 
-### 4. Review and Approve
+### 4. Review and Approve *(New Step)*
+
+**This is a new step in the staged workflow** that adds a review gate between PRP generation and execution.
 
 Once the PRP is generated in `01-Drafts/`:
 
