@@ -169,7 +169,7 @@ The most complete implementation with human-in-the-loop checkpoints and multi-so
 
 **Directory Structure:**
 ```
-runs/2024-12-08_add-jwt-authentication/
+workflows/2024-12-08_add-jwt-authentication/
 ├── prompt.md           # Copy of original prompt or fetched issue
 ├── state.json          # Workflow state with checkpoints
 ├── events.log          # Event history

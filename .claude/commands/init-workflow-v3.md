@@ -18,7 +18,7 @@ prompts/                              # User-authored prompt files
 ├── jwt-auth.md
 └── user-profile.md
 
-runs/                                 # Generated artifacts (all workflow output)
+workflows/                                 # Generated artifacts (all workflow output)
 └── 2024-12-08_jwt-auth/
     ├── prompt.md                     # Copy of original prompt or fetched issue
     ├── state.json
@@ -35,7 +35,7 @@ runs/                                 # Generated artifacts (all workflow output
 
 **Key principles:**
 - `prompts/` is for authoring — you write here
-- `runs/` is for output — agents write here
+- `workflows/` is for output — agents write here
 - Each run is self-contained with its own prompt copy
 - Run folders named: `{YYYY-MM-DD}_{slug}` (slug auto-generated from title, max 50 chars)
 
@@ -119,12 +119,12 @@ RUN_ID="$(date +%Y-%m-%d)_${SLUG}"
 
 ```bash
 # Create run directory and subdirectories
-mkdir -p "runs/${RUN_ID}/artifacts/"{requirements,research,architecture,code,tests,validation,docs}
+mkdir -p "workflows/${RUN_ID}/artifacts/"{requirements,research,architecture,code,tests,validation,docs}
 ```
 
 **Created structure:**
 ```
-runs/{RUN_ID}/
+workflows/{RUN_ID}/
 ├── prompt.md           # Copy of original input
 ├── state.json          # Workflow state
 ├── events.log          # Event history
@@ -142,7 +142,7 @@ runs/{RUN_ID}/
 
 ## Step 4: Copy/Create Prompt File
 
-**Use `create_file` tool** to write `runs/{RUN_ID}/prompt.md`:
+**Use `create_file` tool** to write `workflows/{RUN_ID}/prompt.md`:
 
 ```markdown
 # {Title}
@@ -181,7 +181,7 @@ Parse the request and classify:
 
 **CRITICAL: Use `create_file` tool**
 
-Create `runs/{RUN_ID}/state.json`:
+Create `workflows/{RUN_ID}/state.json`:
 
 ```json
 {
@@ -319,7 +319,7 @@ Create `runs/{RUN_ID}/state.json`:
 
 **Use `create_file` tool:**
 
-Create `runs/{RUN_ID}/events.log`:
+Create `workflows/{RUN_ID}/events.log`:
 
 ```
 [{ISO-8601}] WORKFLOW_INITIALIZED | run_id={RUN_ID} | source={type} | pattern={pattern}
@@ -351,9 +351,9 @@ Skip:
 ### 8.2 Invoke Requirements Analyst
 
 Invoke with:
-- **Input**: `runs/{RUN_ID}/prompt.md`
+- **Input**: `workflows/{RUN_ID}/prompt.md`
 - **Run ID**: `{RUN_ID}`
-- **Output Path**: `runs/{RUN_ID}/artifacts/requirements/requirements.json`
+- **Output Path**: `workflows/{RUN_ID}/artifacts/requirements/requirements.json`
 
 ### 8.3 Handle Clarifications
 
@@ -447,7 +447,7 @@ When user responds `yes`, `y`, `continue`, or similar:
 
 ```bash
 # Log checkpoint passed
-echo "[{timestamp}] CHECKPOINT_PASSED | phase=1 | name=requirements" >> runs/{RUN_ID}/events.log
+echo "[{timestamp}] CHECKPOINT_PASSED | phase=1 | name=requirements" >> workflows/{RUN_ID}/events.log
 ```
 
 Update `state.json`:
@@ -507,7 +507,7 @@ After all phases approved:
 
 ### Generated Files
 ```
-runs/{RUN_ID}/
+workflows/{RUN_ID}/
 ├── prompt.md
 ├── state.json
 ├── events.log
@@ -532,14 +532,14 @@ runs/{RUN_ID}/
 
 ### Next Steps
 1. Review generated code in `artifacts/code/`
-2. Run tests: `pytest runs/{RUN_ID}/artifacts/tests/`
+2. Run tests: `pytest workflows/{RUN_ID}/artifacts/tests/`
 3. Apply changes to your codebase
 
 ---
 
 **Commands:**
-- View logs: `view runs/{RUN_ID}/events.log`
-- View state: `view runs/{RUN_ID}/state.json`
+- View logs: `view workflows/{RUN_ID}/events.log`
+- View state: `view workflows/{RUN_ID}/state.json`
 ```
 
 ---
@@ -637,7 +637,7 @@ For each artifact, extract only:
 | Agent fails | Log error, pause at checkpoint, offer retry or skip |
 | User rejects checkpoint | Pause workflow, ask for guidance |
 | `prompts/` doesn't exist | Create it: `mkdir -p prompts` |
-| `runs/` doesn't exist | Create it automatically |
+| `workflows/` doesn't exist | Create it automatically |
 
 ---
 
@@ -717,7 +717,7 @@ Claude: Starting Phase 2: Research...
 If you run the same prompt twice on the same day, the slug ensures uniqueness:
 
 ```
-runs/
+workflows/
 ├── 2024-12-08_add-jwt-authentication/      # First run
 └── 2024-12-08_add-jwt-authentication-2/    # Second run (auto-increment)
 ```
@@ -725,7 +725,7 @@ runs/
 **Detection logic:**
 ```bash
 # Check if run folder exists, if so, append -2, -3, etc.
-BASE="runs/$(date +%Y-%m-%d)_${SLUG}"
+BASE="workflows/$(date +%Y-%m-%d)_${SLUG}"
 if [ -d "$BASE" ]; then
   COUNT=2
   while [ -d "${BASE}-${COUNT}" ]; do
