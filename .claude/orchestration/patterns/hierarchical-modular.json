@@ -1,0 +1,332 @@
+{
+  "$schema": "workflow-pattern-v1",
+  "pattern_id": "hierarchical-modular",
+  "name": "Hierarchical Modular",
+  "description": "Divide-and-conquer pattern for large refactors with multiple independent modules",
+  
+  "applicability": {
+    "request_types": ["REFACTOR", "NEW_FEATURE"],
+    "complexity": ["LARGE"],
+    "domains": ["FULLSTACK", "BACKEND", "FRONTEND"],
+    "indicators": [
+      "More than 20 files to modify",
+      "Multiple independent modules affected",
+      "Cross-cutting concerns to address",
+      "Breaking changes required",
+      "Phased rollout needed"
+    ]
+  },
+  
+  "structure": {
+    "type": "hierarchical",
+    "description": "Main workflow spawns sub-workflows for each module",
+    "max_depth": 2,
+    "max_parallel_subworkflows": 3
+  },
+  
+  "phases": [
+    {
+      "phase": 1,
+      "name": "planning",
+      "description": "High-level requirements and module decomposition",
+      "agents": ["requirements-analyst"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 15,
+      "output": {
+        "module_breakdown": true,
+        "dependency_graph": true,
+        "execution_order": true
+      },
+      "success_criteria": {
+        "min_confidence": 0.7,
+        "modules_identified": true
+      }
+    },
+    {
+      "phase": 2,
+      "name": "research",
+      "description": "Comprehensive codebase analysis for refactoring",
+      "agents": ["research-codebase", "research-docs"],
+      "parallel": true,
+      "blocking": true,
+      "timeout_minutes": 20,
+      "focus_areas": [
+        "existing_patterns",
+        "technical_debt",
+        "breaking_changes",
+        "migration_paths"
+      ]
+    },
+    {
+      "phase": 3,
+      "name": "master-architecture",
+      "description": "Design overall architecture and module boundaries",
+      "agents": ["architecture"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 20,
+      "human_gate": {
+        "condition": "always",
+        "prompt": "Review overall architecture and module decomposition before proceeding",
+        "timeout_minutes": 120,
+        "default_action": "pause"
+      },
+      "output": {
+        "module_architectures": true,
+        "shared_components": true,
+        "migration_strategy": true
+      }
+    },
+    {
+      "phase": 4,
+      "name": "module-execution",
+      "description": "Execute sub-workflows for each module",
+      "type": "subworkflow_dispatch",
+      "parallel": true,
+      "max_parallel": 3,
+      "blocking": true,
+      "timeout_minutes": 90,
+      "subworkflow_pattern": "module-implementation",
+      "subworkflow_template": {
+        "phases": [
+          {
+            "name": "module-architecture",
+            "agents": ["architecture"],
+            "timeout_minutes": 10
+          },
+          {
+            "name": "module-generation",
+            "agents": ["codegen-backend", "codegen-frontend", "database"],
+            "parallel": true,
+            "agent_selection": "based_on_module_type",
+            "timeout_minutes": 20
+          },
+          {
+            "name": "module-testing",
+            "agents": ["test-generation"],
+            "timeout_minutes": 15
+          },
+          {
+            "name": "module-validation",
+            "agents": ["validation"],
+            "timeout_minutes": 10
+          }
+        ]
+      },
+      "execution_strategy": {
+        "order": "dependency_based",
+        "continue_on_failure": false,
+        "rollback_on_failure": true
+      }
+    },
+    {
+      "phase": 5,
+      "name": "cross-cutting",
+      "description": "Handle shared components and cross-cutting concerns",
+      "agents": ["codegen-backend", "integration"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 20,
+      "focus": [
+        "shared_utilities",
+        "common_interfaces",
+        "migration_scripts",
+        "backwards_compatibility"
+      ]
+    },
+    {
+      "phase": 6,
+      "name": "integration",
+      "description": "Wire all modules together",
+      "agents": ["integration"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 25,
+      "tasks": [
+        "module_wiring",
+        "dependency_updates",
+        "configuration_merging",
+        "entry_point_updates"
+      ]
+    },
+    {
+      "phase": 7,
+      "name": "integration-testing",
+      "description": "End-to-end testing across modules",
+      "agents": ["test-generation", "validation"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 30,
+      "test_types": [
+        "integration_tests",
+        "e2e_tests",
+        "regression_tests",
+        "performance_baseline"
+      ]
+    },
+    {
+      "phase": 8,
+      "name": "finalization",
+      "description": "Documentation and final validation",
+      "agents": ["validation", "documentation"],
+      "parallel": true,
+      "blocking": true,
+      "timeout_minutes": 25,
+      "deliverables": [
+        "migration_guide",
+        "changelog",
+        "api_documentation",
+        "architecture_decision_records"
+      ]
+    }
+  ],
+  
+  "module_types": {
+    "backend_module": {
+      "agents": ["codegen-backend", "database", "test-generation"],
+      "typical_tokens": 25000,
+      "typical_duration": 20
+    },
+    "frontend_module": {
+      "agents": ["codegen-frontend", "test-generation"],
+      "typical_tokens": 20000,
+      "typical_duration": 18
+    },
+    "shared_module": {
+      "agents": ["codegen-backend", "test-generation"],
+      "typical_tokens": 15000,
+      "typical_duration": 12
+    },
+    "infrastructure_module": {
+      "agents": ["database", "codegen-backend"],
+      "typical_tokens": 18000,
+      "typical_duration": 15
+    }
+  },
+  
+  "artifact_routing": {
+    "requirements-analyst": {
+      "produces": ["requirements.json", "module_breakdown.json"],
+      "consumers": ["research-codebase", "architecture"]
+    },
+    "research-codebase": {
+      "produces": ["research/codebase.json", "research/technical_debt.json"],
+      "consumers": ["architecture"]
+    },
+    "architecture": {
+      "produces": ["architecture/master.json", "architecture/modules/"],
+      "consumers": ["subworkflows", "integration"]
+    },
+    "subworkflows": {
+      "produces": ["modules/{module_id}/"],
+      "consumers": ["integration", "validation"]
+    },
+    "integration": {
+      "produces": ["code/integration/", "migrations/"],
+      "consumers": ["validation"]
+    }
+  },
+  
+  "state_management": {
+    "checkpoint_frequency": "per_phase",
+    "subworkflow_state": "nested",
+    "rollback_support": true,
+    "partial_completion_allowed": true
+  },
+  
+  "global_settings": {
+    "max_total_duration_minutes": 240,
+    "max_total_tokens": 400000,
+    "state_persistence": true,
+    "event_logging": true,
+    "detailed_progress_tracking": true
+  },
+  
+  "recovery_strategies": {
+    "subworkflow_failure": {
+      "action": "isolate_and_continue",
+      "mark_module_failed": true,
+      "continue_independent_modules": true,
+      "require_human_decision_for_dependent": true
+    },
+    "integration_failure": {
+      "action": "rollback_to_phase",
+      "rollback_target": 4,
+      "preserve_successful_modules": true
+    },
+    "timeout": {
+      "action": "checkpoint_and_pause",
+      "allow_resume": true
+    }
+  },
+  
+  "human_checkpoints": [
+    {
+      "after_phase": 3,
+      "name": "Architecture Approval",
+      "required": true,
+      "decisions": [
+        "Approve module decomposition",
+        "Adjust module boundaries",
+        "Modify execution order",
+        "Cancel and redesign"
+      ]
+    },
+    {
+      "after_phase": 4,
+      "name": "Module Implementation Review",
+      "required": false,
+      "condition": "any_module_failed",
+      "decisions": [
+        "Retry failed modules",
+        "Skip failed modules",
+        "Pause for manual intervention"
+      ]
+    },
+    {
+      "after_phase": 7,
+      "name": "Integration Verification",
+      "required": false,
+      "condition": "test_coverage < 0.7 OR tests_failed > 0",
+      "decisions": [
+        "Proceed with warnings",
+        "Retry testing phase",
+        "Manual review required"
+      ]
+    }
+  ],
+  
+  "metrics_collection": {
+    "per_module": ["tokens_used", "duration_ms", "files_generated", "tests_generated", "coverage"],
+    "per_phase": ["total_tokens", "modules_completed", "modules_failed"],
+    "workflow": ["total_tokens", "total_duration", "modules_total", "final_coverage", "migration_complexity"]
+  },
+  
+  "estimated_resources": {
+    "typical_tokens": 180000,
+    "typical_duration_minutes": 120,
+    "typical_modules": 4,
+    "agent_invocations": 25
+  },
+  
+  "output_structure": {
+    "migration_guide": {
+      "required": true,
+      "sections": [
+        "breaking_changes",
+        "migration_steps",
+        "rollback_procedure",
+        "verification_checklist"
+      ]
+    },
+    "changelog": {
+      "required": true,
+      "format": "keep-a-changelog"
+    },
+    "architecture_docs": {
+      "required": true,
+      "include_adrs": true
+    }
+  }
+}

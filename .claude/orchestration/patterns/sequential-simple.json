@@ -1,0 +1,153 @@
+{
+  "$schema": "workflow-pattern-v1",
+  "pattern_id": "sequential-simple",
+  "name": "Sequential Simple",
+  "description": "Minimal workflow for simple changes with agents running one at a time",
+  "version": "1.0.0",
+  
+  "applicable_when": {
+    "request_types": ["BUG_FIX", "DOCUMENTATION", "ENHANCEMENT"],
+    "complexity": ["SIMPLE"],
+    "domains": ["BACKEND", "FRONTEND", "DATABASE", "INFRASTRUCTURE"]
+  },
+  
+  "phases": [
+    {
+      "phase": 1,
+      "name": "requirements",
+      "description": "Quick analysis of the change request",
+      "agents": ["requirements-analyst"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 3,
+      "retry_limit": 1,
+      "inputs": {
+        "requirements-analyst": {
+          "required": ["request_file"],
+          "optional": []
+        }
+      },
+      "outputs": {
+        "requirements-analyst": "requirements.json"
+      },
+      "success_criteria": {
+        "requirements-analyst": {
+          "min_confidence": 0.5,
+          "required_sections": ["functional_requirements"]
+        }
+      }
+    },
+    {
+      "phase": 2,
+      "name": "research",
+      "description": "Find relevant code patterns",
+      "agents": ["research-codebase"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 5,
+      "retry_limit": 1,
+      "inputs": {
+        "research-codebase": {
+          "required": ["requirements.json"],
+          "optional": []
+        }
+      },
+      "outputs": {
+        "research-codebase": "research-codebase.json"
+      },
+      "skip_condition": "is_documentation_only"
+    },
+    {
+      "phase": 3,
+      "name": "generation",
+      "description": "Generate the code change",
+      "agents": ["codegen-backend"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 10,
+      "retry_limit": 2,
+      "agent_selection": {
+        "codegen-backend": {
+          "include_when": "domain in ['BACKEND', 'DATABASE', 'INFRASTRUCTURE']"
+        },
+        "codegen-frontend": {
+          "include_when": "domain == 'FRONTEND'"
+        },
+        "documentation": {
+          "include_when": "request_type == 'DOCUMENTATION'",
+          "replaces": ["codegen-backend", "codegen-frontend"]
+        }
+      },
+      "inputs": {
+        "codegen-backend": {
+          "required": ["requirements.json"],
+          "optional": ["research-codebase.json"]
+        },
+        "codegen-frontend": {
+          "required": ["requirements.json"],
+          "optional": ["research-codebase.json"]
+        },
+        "documentation": {
+          "required": ["requirements.json"]
+        }
+      },
+      "outputs": {
+        "codegen-backend": "code/",
+        "codegen-frontend": "code/",
+        "documentation": "docs/"
+      }
+    },
+    {
+      "phase": 4,
+      "name": "validation",
+      "description": "Verify the change works",
+      "agents": ["validation"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 5,
+      "retry_limit": 1,
+      "inputs": {
+        "validation": {
+          "required": ["requirements.json"],
+          "dynamic": ["generated_code"]
+        }
+      },
+      "outputs": {
+        "validation": "validation/validation.json"
+      },
+      "success_criteria": {
+        "validation": {
+          "tests_pass": true,
+          "lint_pass": true
+        }
+      },
+      "on_validation_failure": {
+        "action": "retry_generation_phase",
+        "max_retries": 1
+      }
+    }
+  ],
+  
+  "global_settings": {
+    "max_total_duration_minutes": 25,
+    "max_total_tokens": 50000,
+    "state_persistence": true,
+    "event_logging": true,
+    "artifact_validation": true
+  },
+  
+  "recovery_strategies": {
+    "agent_failure": {
+      "strategy": "retry_once",
+      "max_retries": 1
+    },
+    "phase_failure": {
+      "strategy": "fail_fast"
+    }
+  },
+  
+  "metrics_collection": {
+    "per_agent": ["tokens_used", "duration_ms"],
+    "workflow": ["total_tokens", "total_duration_ms", "final_status"]
+  }
+}

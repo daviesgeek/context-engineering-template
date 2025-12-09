@@ -1,0 +1,496 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "research-artifact-v1",
+  "title": "Research Artifact",
+  "description": "Schema for research artifacts produced by research-codebase and research-docs agents",
+  "type": "object",
+  
+  "required": [
+    "$schema",
+    "workflow_id",
+    "created_at",
+    "agent",
+    "version",
+    "summary",
+    "metadata"
+  ],
+  
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": ["research-codebase-artifact-v1", "research-docs-artifact-v1"]
+    },
+    
+    "workflow_id": {
+      "type": "string",
+      "pattern": "^wf_\\d{8}_\\d{6}$"
+    },
+    
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    
+    "agent": {
+      "type": "string",
+      "enum": ["research-codebase", "research-docs"]
+    },
+    
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    
+    "summary": {
+      "type": "object",
+      "properties": {
+        "files_analyzed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "patterns_found": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reusable_components": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "documents_fetched": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "documents_failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_source_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_compressed_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "compression_ratio": {
+          "type": "number",
+          "minimum": 0
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    
+    "similar_implementations": {
+      "type": "array",
+      "description": "For codebase research: similar code found",
+      "items": {
+        "type": "object",
+        "required": ["id", "file_path", "description", "relevance_score"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SIM-\\d{3}$"
+          },
+          "file_path": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "relevance_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "key_patterns": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "reusable_code": {
+            "type": "object",
+            "properties": {
+              "imports": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "class_structure": { "type": "string" },
+              "key_methods": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    
+    "architectural_patterns": {
+      "type": "array",
+      "description": "For codebase research: patterns identified",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "description", "locations"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^PAT-\\d{3}$"
+          },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "locations": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "example": {
+            "type": "object",
+            "properties": {
+              "file": { "type": "string" },
+              "snippet": { "type": "string" }
+            }
+          },
+          "usage_notes": { "type": "string" }
+        }
+      }
+    },
+    
+    "conventions": {
+      "type": "object",
+      "description": "For codebase research: coding conventions",
+      "properties": {
+        "naming": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "structure": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "typing": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "documentation": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "error_handling": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    
+    "reusable_components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "file", "type", "usage"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^COMP-\\d{3}$"
+          },
+          "name": { "type": "string" },
+          "file": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["dependency", "utility", "helper", "base_class", "mixin", "decorator"]
+          },
+          "usage": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    
+    "integration_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "file", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^INT-\\d{3}$"
+          },
+          "name": { "type": "string" },
+          "file": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["model", "client", "service", "repository", "config"]
+          },
+          "interface": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    
+    "existing_tests": {
+      "type": "object",
+      "properties": {
+        "test_framework": { "type": "string" },
+        "fixtures_location": { "type": "string" },
+        "key_fixtures": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "mocking_pattern": { "type": "string" },
+        "example_test": { "type": "string" }
+      }
+    },
+    
+    "potential_conflicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "description"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^CONF-\\d{3}$"
+          },
+          "description": { "type": "string" },
+          "file": { "type": "string" },
+          "recommendation": { "type": "string" }
+        }
+      }
+    },
+    
+    "documentation": {
+      "type": "array",
+      "description": "For docs research: fetched documentation",
+      "items": {
+        "type": "object",
+        "required": ["id", "source_url", "title", "fetch_status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^DOC-\\d{3}$"
+          },
+          "source_url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "title": { "type": "string" },
+          "fetch_status": {
+            "type": "string",
+            "enum": ["success", "failed", "partial"]
+          },
+          "relevance_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "compressed_content": {
+            "type": "object",
+            "properties": {
+              "overview": { "type": "string" },
+              "key_concepts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["concept", "description"],
+                  "properties": {
+                    "concept": { "type": "string" },
+                    "description": { "type": "string" },
+                    "details": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  }
+                }
+              },
+              "code_examples": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["title", "language", "code"],
+                  "properties": {
+                    "title": { "type": "string" },
+                    "language": { "type": "string" },
+                    "code": { "type": "string" },
+                    "notes": { "type": "string" }
+                  }
+                }
+              },
+              "best_practices": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "common_pitfalls": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["pitfall", "prevention"],
+                  "properties": {
+                    "pitfall": { "type": "string" },
+                    "description": { "type": "string" },
+                    "prevention": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "api_reference": {
+            "type": "object",
+            "properties": {
+              "classes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "import": { "type": "string" },
+                    "constructor": { "type": "string" },
+                    "fields": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    },
+                    "usage": { "type": "string" }
+                  }
+                }
+              },
+              "functions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "signature": { "type": "string" },
+                    "description": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "source_tokens": { "type": "integer" },
+              "compressed_tokens": { "type": "integer" },
+              "compression_ratio": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    
+    "library_references": {
+      "type": "array",
+      "description": "For docs research: library summaries",
+      "items": {
+        "type": "object",
+        "required": ["name", "install", "import"],
+        "properties": {
+          "name": { "type": "string" },
+          "install": { "type": "string" },
+          "import": { "type": "string" },
+          "version_notes": { "type": "string" },
+          "usage": { "type": "string" },
+          "key_functions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "signature"],
+              "properties": {
+                "name": { "type": "string" },
+                "signature": { "type": "string" },
+                "example": { "type": "string" },
+                "exceptions": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "combined_best_practices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["category", "practices"],
+        "properties": {
+          "category": { "type": "string" },
+          "practices": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    
+    "failed_fetches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["url", "error"],
+        "properties": {
+          "url": { "type": "string" },
+          "error": { "type": "string" },
+          "impact": { "type": "string" }
+        }
+      }
+    },
+    
+    "metadata": {
+      "type": "object",
+      "required": ["tokens_used"],
+      "properties": {
+        "search_terms_used": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "files_searched": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "files_analyzed_deeply": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "urls_requested": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "urls_fetched": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "urls_failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_source_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_compressed_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "overall_compression_ratio": {
+          "type": "number",
+          "minimum": 0
+        },
+        "tokens_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "analysis_duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

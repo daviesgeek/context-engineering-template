@@ -1,0 +1,381 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "architecture-artifact-v1",
+  "title": "Architecture Artifact",
+  "description": "Schema for architecture agent output artifacts",
+  "type": "object",
+  "required": [
+    "$schema",
+    "workflow_id",
+    "created_at",
+    "agent",
+    "version",
+    "summary",
+    "components",
+    "file_structure",
+    "implementation_phases",
+    "metadata"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "architecture-artifact-v1"
+    },
+    "workflow_id": {
+      "type": "string",
+      "pattern": "^wf_\\d{8}_\\d{6}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agent": {
+      "type": "string",
+      "const": "architecture"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "summary": {
+      "type": "object",
+      "required": ["title", "description", "total_components", "total_files", "estimated_complexity", "confidence_score"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "total_components": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total_files": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "estimated_complexity": {
+          "type": "string",
+          "enum": ["simple", "medium", "complex", "large"]
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "design_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "decision", "rationale"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^DD-\\d{3}$"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "rationale": {
+            "type": "string"
+          },
+          "alternatives_considered": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["alternative", "reason_rejected"],
+              "properties": {
+                "alternative": {"type": "string"},
+                "reason_rejected": {"type": "string"}
+              }
+            }
+          },
+          "implications": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "type", "responsibility", "file_path", "interface"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^COMP-\\d{3}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["service", "utility", "api", "dependency", "storage", "config", "model", "controller", "middleware", "repository"]
+          },
+          "responsibility": {
+            "type": "string"
+          },
+          "file_path": {
+            "type": "string"
+          },
+          "dependencies": {
+            "type": "object",
+            "properties": {
+              "internal": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["component", "file", "usage"],
+                  "properties": {
+                    "component": {"type": "string"},
+                    "file": {"type": "string"},
+                    "usage": {"type": "string"}
+                  }
+                }
+              },
+              "external": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["package", "usage"],
+                  "properties": {
+                    "package": {"type": "string"},
+                    "version": {"type": "string"},
+                    "extras": {
+                      "type": "array",
+                      "items": {"type": "string"}
+                    },
+                    "usage": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "interface": {
+            "type": "object",
+            "properties": {
+              "class_name": {"type": "string"},
+              "base_class": {"type": "string"},
+              "constructor": {
+                "type": "object",
+                "properties": {
+                  "parameters": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["name", "type"],
+                      "properties": {
+                        "name": {"type": "string"},
+                        "type": {"type": "string"},
+                        "description": {"type": "string"},
+                        "default": {"type": "string"}
+                      }
+                    }
+                  }
+                }
+              },
+              "methods": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name", "signature", "description"],
+                  "properties": {
+                    "name": {"type": "string"},
+                    "signature": {"type": "string"},
+                    "description": {"type": "string"},
+                    "raises": {
+                      "type": "array",
+                      "items": {"type": "string"}
+                    }
+                  }
+                }
+              },
+              "models": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name", "fields"],
+                  "properties": {
+                    "name": {"type": "string"},
+                    "fields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["name", "type"],
+                        "properties": {
+                          "name": {"type": "string"},
+                          "type": {"type": "string"},
+                          "description": {"type": "string"},
+                          "default": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "endpoints": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["method", "path", "handler"],
+                  "properties": {
+                    "method": {
+                      "type": "string",
+                      "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+                    },
+                    "path": {"type": "string"},
+                    "handler": {"type": "string"},
+                    "request_body": {"type": "string"},
+                    "response_model": {"type": "string"},
+                    "status_codes": {
+                      "type": "array",
+                      "items": {"type": "integer"}
+                    },
+                    "auth_required": {"type": "boolean"},
+                    "description": {"type": "string"}
+                  }
+                }
+              },
+              "functions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name", "signature", "description"],
+                  "properties": {
+                    "name": {"type": "string"},
+                    "signature": {"type": "string"},
+                    "description": {"type": "string"},
+                    "raises": {
+                      "type": "array",
+                      "items": {"type": "string"}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "implementation_notes": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+    "file_structure": {
+      "type": "object",
+      "required": ["new_files"],
+      "properties": {
+        "new_files": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "modified_files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "modification"],
+            "properties": {
+              "file": {"type": "string"},
+              "modification": {"type": "string"}
+            }
+          }
+        },
+        "tree": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "base", "description"],
+        "properties": {
+          "name": {"type": "string"},
+          "base": {"type": "string"},
+          "description": {"type": "string"},
+          "file": {"type": "string"}
+        }
+      }
+    },
+    "implementation_phases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["phase", "name", "description", "components", "files"],
+        "properties": {
+          "phase": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {"type": "string"},
+          "description": {"type": "string"},
+          "components": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "files": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "validation": {"type": "string"}
+        }
+      }
+    },
+    "data_flow": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {"type": "string"}
+      }
+    },
+    "risks_and_mitigations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["risk", "impact", "mitigation"],
+        "properties": {
+          "risk": {"type": "string"},
+          "impact": {"type": "string"},
+          "mitigation": {"type": "string"},
+          "implementation": {"type": "string"}
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["tokens_used"],
+      "properties": {
+        "requirements_coverage": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        },
+        "tokens_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "design_duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

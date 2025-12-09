@@ -1,0 +1,388 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "code-artifact-v1",
+  "title": "Code Artifact",
+  "description": "Schema for code artifacts produced by codegen agents (backend, frontend, database)",
+  "type": "object",
+  
+  "required": [
+    "$schema",
+    "workflow_id",
+    "created_at",
+    "agent",
+    "version",
+    "generated_files",
+    "metadata"
+  ],
+  
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "enum": [
+        "code-backend-artifact-v1",
+        "code-frontend-artifact-v1",
+        "code-database-artifact-v1",
+        "code-integration-artifact-v1"
+      ]
+    },
+    
+    "workflow_id": {
+      "type": "string",
+      "pattern": "^wf_\\d{8}_\\d{6}$"
+    },
+    
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    
+    "agent": {
+      "type": "string",
+      "enum": ["codegen-backend", "codegen-frontend", "database", "integration"]
+    },
+    
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    
+    "generated_files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "content", "description"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Relative file path from project root"
+          },
+          "component_id": {
+            "type": ["string", "null"],
+            "pattern": "^COMP-\\d{3}$",
+            "description": "Reference to architecture component"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "service",
+              "api",
+              "endpoint",
+              "model",
+              "schema",
+              "repository",
+              "utility",
+              "config",
+              "exception",
+              "middleware",
+              "dependency",
+              "component",
+              "hook",
+              "context",
+              "store",
+              "migration",
+              "test",
+              "fixture",
+              "module_export",
+              "router_setup"
+            ]
+          },
+          "content": {
+            "type": "string",
+            "description": "Full file content"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "line_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "language": {
+            "type": "string",
+            "enum": ["python", "typescript", "javascript", "sql", "json", "yaml", "markdown"]
+          },
+          "dependencies_used": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "External packages imported"
+          },
+          "exports": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Public exports from this file"
+          }
+        }
+      }
+    },
+    
+    "modified_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "type", "modifications"],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["app_entry", "dependencies", "config", "router", "middleware"]
+          },
+          "modifications": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["action", "content"],
+              "properties": {
+                "location": {
+                  "type": "string",
+                  "description": "Where in the file to apply change"
+                },
+                "action": {
+                  "type": "string",
+                  "enum": ["add_import", "add_line", "add_router", "replace", "insert_after", "insert_before"]
+                },
+                "content": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "full_content": {
+            "type": "string",
+            "description": "Full file content after modifications (optional)"
+          }
+        }
+      }
+    },
+    
+    "api_endpoints": {
+      "type": "array",
+      "description": "For backend: API endpoints created",
+      "items": {
+        "type": "object",
+        "required": ["method", "path", "handler", "file"],
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+          },
+          "path": { "type": "string" },
+          "handler": { "type": "string" },
+          "file": { "type": "string" },
+          "auth_required": { "type": "boolean" },
+          "request_model": { "type": "string" },
+          "response_model": { "type": "string" }
+        }
+      }
+    },
+    
+    "models_created": {
+      "type": "array",
+      "description": "Data models/schemas created",
+      "items": {
+        "type": "object",
+        "required": ["name", "file", "type"],
+        "properties": {
+          "name": { "type": "string" },
+          "file": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["pydantic", "sqlalchemy", "dataclass", "typescript_interface", "typescript_type", "zod"]
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "type"],
+              "properties": {
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "optional": { "type": "boolean" },
+                "default": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    
+    "components_created": {
+      "type": "array",
+      "description": "For frontend: UI components created",
+      "items": {
+        "type": "object",
+        "required": ["name", "file", "type"],
+        "properties": {
+          "name": { "type": "string" },
+          "file": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["component", "page", "layout", "hook", "context", "hoc"]
+          },
+          "props": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "type"],
+              "properties": {
+                "name": { "type": "string" },
+                "type": { "type": "string" },
+                "required": { "type": "boolean" },
+                "default": { "type": "string" }
+              }
+            }
+          },
+          "state": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "dependencies": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    
+    "schema_changes": {
+      "type": "object",
+      "description": "For database: schema modifications",
+      "properties": {
+        "new_tables": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "modified_tables": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "new_indexes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "new_foreign_keys": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "migrations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file", "description"],
+            "properties": {
+              "file": { "type": "string" },
+              "revision": { "type": "string" },
+              "description": { "type": "string" },
+              "reversible": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    
+    "dependency_graph": {
+      "type": "object",
+      "description": "For integration: component wiring",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "depends_on": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "provided_by": { "type": "string" }
+        }
+      }
+    },
+    
+    "cross_cutting_concerns": {
+      "type": "object",
+      "description": "For integration: middleware and shared concerns",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "implemented": { "type": "boolean" },
+          "files": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "pattern": { "type": "string" },
+          "file": { "type": "string" }
+        }
+      }
+    },
+    
+    "external_dependencies": {
+      "type": "array",
+      "description": "New packages required",
+      "items": {
+        "type": "object",
+        "required": ["package", "version"],
+        "properties": {
+          "package": { "type": "string" },
+          "version": { "type": "string" },
+          "extras": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "dev_only": { "type": "boolean" }
+        }
+      }
+    },
+    
+    "metadata": {
+      "type": "object",
+      "required": ["total_files", "tokens_used"],
+      "properties": {
+        "framework": {
+          "type": "string",
+          "description": "Framework used (fastapi, react, vue, etc.)"
+        },
+        "styling": {
+          "type": "string",
+          "description": "Styling approach (css-modules, tailwind, etc.)"
+        },
+        "state_management": {
+          "type": "string",
+          "description": "State management (context, redux, etc.)"
+        },
+        "orm": {
+          "type": "string",
+          "description": "ORM used (sqlalchemy, prisma, etc.)"
+        },
+        "database": {
+          "type": "string",
+          "description": "Database type (postgresql, mysql, etc.)"
+        },
+        "migration_tool": {
+          "type": "string",
+          "description": "Migration tool (alembic, prisma, etc.)"
+        },
+        "total_files": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "total_lines": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "components_implemented": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Architecture component IDs implemented"
+        },
+        "tokens_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "generation_duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

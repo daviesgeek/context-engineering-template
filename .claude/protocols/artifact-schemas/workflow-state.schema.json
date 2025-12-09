@@ -1,0 +1,381 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "workflow-state-v1",
+  "title": "Workflow State",
+  "description": "State management schema for multi-agent workflows",
+  "type": "object",
+  "required": [
+    "workflow_id",
+    "status",
+    "pattern",
+    "created_at",
+    "updated_at",
+    "request",
+    "agents",
+    "execution_plan",
+    "artifacts",
+    "events",
+    "metrics"
+  ],
+  "properties": {
+    "workflow_id": {
+      "type": "string",
+      "pattern": "^wf_[0-9]{8}_[0-9]{6}$",
+      "description": "Unique workflow identifier (wf_YYYYMMDD_HHMMSS)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "initialized",
+        "in_progress",
+        "paused",
+        "awaiting_input",
+        "failed",
+        "completed",
+        "cancelled"
+      ],
+      "description": "Current workflow status"
+    },
+    "pattern": {
+      "type": "string",
+      "enum": [
+        "sequential-simple",
+        "concurrent-standard",
+        "concurrent-full",
+        "hierarchical-modular"
+      ],
+      "description": "Selected orchestration pattern"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "request": {
+      "type": "object",
+      "required": ["file", "type", "complexity", "domain"],
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Path to original request file"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["NEW_FEATURE", "BUG_FIX", "REFACTOR", "ENHANCEMENT", "DOCUMENTATION"]
+        },
+        "complexity": {
+          "type": "string",
+          "enum": ["SIMPLE", "MEDIUM", "COMPLEX", "LARGE"]
+        },
+        "domain": {
+          "type": "string",
+          "enum": ["BACKEND", "FRONTEND", "FULLSTACK", "DATABASE", "INFRASTRUCTURE"]
+        }
+      }
+    },
+    "agents": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/agent_state"
+      },
+      "description": "State for each agent in the workflow"
+    },
+    "execution_plan": {
+      "type": "object",
+      "required": ["phases", "current_phase", "total_phases"],
+      "properties": {
+        "phases": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/phase" }
+        },
+        "current_phase": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_phases": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/artifact_reference"
+      },
+      "description": "References to generated artifacts"
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/event" },
+      "description": "Event log for the workflow"
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["total_tokens", "agents_completed", "agents_failed"],
+      "properties": {
+        "total_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "agents_completed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "agents_failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimated_cost_usd": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/error" },
+      "description": "Errors encountered during workflow"
+    },
+    "human_inputs": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/human_input" },
+      "description": "Human inputs received during workflow"
+    }
+  },
+  "definitions": {
+    "agent_state": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "queued",
+            "active",
+            "in_progress",
+            "complete",
+            "failed",
+            "skipped",
+            "retrying"
+          ]
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_activity": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "output_artifact": {
+          "type": "string",
+          "description": "Path to output artifact"
+        },
+        "tokens_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retries": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "progress": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Progress from 0.0 to 1.0"
+        },
+        "current_task": {
+          "type": "string",
+          "description": "Description of current task"
+        },
+        "error": {
+          "type": "string",
+          "description": "Error message if failed"
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "phase": {
+      "type": "object",
+      "required": ["phase", "name", "agents", "parallel", "blocking"],
+      "properties": {
+        "phase": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "agents": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "parallel": {
+          "type": "boolean",
+          "description": "Whether agents in this phase run in parallel"
+        },
+        "blocking": {
+          "type": "boolean",
+          "description": "Whether this phase must complete before next"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "in_progress", "complete", "failed"],
+          "default": "pending"
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "artifact_reference": {
+      "type": "object",
+      "required": ["path", "created_at", "agent"],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "agent": {
+          "type": "string"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "checksum": {
+          "type": "string"
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": ["timestamp", "type"],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "workflow_initialized",
+            "workflow_started",
+            "workflow_paused",
+            "workflow_resumed",
+            "workflow_completed",
+            "workflow_failed",
+            "workflow_cancelled",
+            "phase_started",
+            "phase_completed",
+            "phase_failed",
+            "agent_started",
+            "agent_progress",
+            "agent_completed",
+            "agent_failed",
+            "agent_retrying",
+            "artifact_created",
+            "human_input_requested",
+            "human_input_received",
+            "error_occurred",
+            "state_updated"
+          ]
+        },
+        "agent": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "integer"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": ["timestamp", "agent", "error_type", "message"],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "agent": {
+          "type": "string"
+        },
+        "error_type": {
+          "type": "string",
+          "enum": [
+            "validation_error",
+            "timeout_error",
+            "context_overflow",
+            "artifact_error",
+            "dependency_error",
+            "tool_error",
+            "unknown_error"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "recoverable": {
+          "type": "boolean"
+        },
+        "stack_trace": {
+          "type": "string"
+        }
+      }
+    },
+    "human_input": {
+      "type": "object",
+      "required": ["timestamp", "request_type", "question"],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "request_type": {
+          "type": "string",
+          "enum": ["clarification", "approval", "decision", "review"]
+        },
+        "question": {
+          "type": "string"
+        },
+        "response": {
+          "type": "string"
+        },
+        "responded_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,245 @@
+{
+  "$schema": "workflow-pattern-v1",
+  "pattern_id": "concurrent-standard",
+  "name": "Concurrent Standard",
+  "description": "Standard multi-agent workflow with parallel research and code generation phases",
+  "version": "1.0.0",
+  
+  "applicable_when": {
+    "request_types": ["NEW_FEATURE", "ENHANCEMENT"],
+    "complexity": ["MEDIUM", "COMPLEX"],
+    "domains": ["BACKEND", "FRONTEND", "FULLSTACK", "DATABASE"]
+  },
+  
+  "phases": [
+    {
+      "phase": 1,
+      "name": "requirements",
+      "description": "Analyze and structure the feature request",
+      "agents": ["requirements-analyst"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 5,
+      "retry_limit": 2,
+      "inputs": {
+        "requirements-analyst": {
+          "required": ["request_file"],
+          "optional": ["project_context"]
+        }
+      },
+      "outputs": {
+        "requirements-analyst": "requirements.json"
+      },
+      "success_criteria": {
+        "requirements-analyst": {
+          "min_confidence": 0.6,
+          "required_sections": ["functional_requirements", "success_criteria"]
+        }
+      },
+      "human_gate": {
+        "condition": "blocking_clarifications_exist",
+        "gate_type": "conditional"
+      }
+    },
+    {
+      "phase": 2,
+      "name": "research",
+      "description": "Research codebase patterns and external documentation",
+      "agents": ["research-codebase", "research-docs"],
+      "parallel": true,
+      "blocking": true,
+      "timeout_minutes": 10,
+      "retry_limit": 2,
+      "inputs": {
+        "research-codebase": {
+          "required": ["requirements.json"],
+          "optional": ["example_files"]
+        },
+        "research-docs": {
+          "required": ["requirements.json"],
+          "optional": ["documentation_urls"]
+        }
+      },
+      "outputs": {
+        "research-codebase": "research-codebase.json",
+        "research-docs": "research-docs.json"
+      },
+      "success_criteria": {
+        "research-codebase": {
+          "min_patterns_found": 1
+        },
+        "research-docs": {
+          "allow_empty": true
+        }
+      }
+    },
+    {
+      "phase": 3,
+      "name": "architecture",
+      "description": "Design the technical solution",
+      "agents": ["architecture"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 10,
+      "retry_limit": 2,
+      "inputs": {
+        "architecture": {
+          "required": ["requirements.json", "research-codebase.json"],
+          "optional": ["research-docs.json", "project_constraints"]
+        }
+      },
+      "outputs": {
+        "architecture": "architecture.json"
+      },
+      "success_criteria": {
+        "architecture": {
+          "min_confidence": 0.7,
+          "required_sections": ["components", "file_structure", "implementation_phases"]
+        }
+      },
+      "human_gate": {
+        "condition": "complexity_is_complex_or_large",
+        "gate_type": "optional"
+      }
+    },
+    {
+      "phase": 4,
+      "name": "generation",
+      "description": "Generate code and tests",
+      "agents": ["codegen-backend", "codegen-frontend", "database", "test-generation"],
+      "parallel": true,
+      "blocking": true,
+      "timeout_minutes": 20,
+      "retry_limit": 3,
+      "agent_selection": {
+        "codegen-backend": {
+          "include_when": "domain in ['BACKEND', 'FULLSTACK'] OR architecture.components.has_backend"
+        },
+        "codegen-frontend": {
+          "include_when": "domain in ['FRONTEND', 'FULLSTACK'] OR architecture.components.has_frontend"
+        },
+        "database": {
+          "include_when": "domain == 'DATABASE' OR architecture.components.has_database"
+        },
+        "test-generation": {
+          "include_when": "always",
+          "depends_on": ["codegen-backend", "codegen-frontend", "database"],
+          "wait_for_one": true
+        }
+      },
+      "inputs": {
+        "codegen-backend": {
+          "required": ["architecture.json"],
+          "optional": ["research-codebase.json"],
+          "filter": "backend_components_only"
+        },
+        "codegen-frontend": {
+          "required": ["architecture.json"],
+          "optional": ["research-codebase.json"],
+          "filter": "frontend_components_only"
+        },
+        "database": {
+          "required": ["architecture.json"],
+          "filter": "database_components_only"
+        },
+        "test-generation": {
+          "required": ["architecture.json"],
+          "dynamic": ["generated_code_from_codegen_agents"]
+        }
+      },
+      "outputs": {
+        "codegen-backend": "code/backend/",
+        "codegen-frontend": "code/frontend/",
+        "database": "code/database/",
+        "test-generation": "tests/"
+      }
+    },
+    {
+      "phase": 5,
+      "name": "integration",
+      "description": "Integrate components and handle cross-cutting concerns",
+      "agents": ["integration"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 10,
+      "retry_limit": 2,
+      "inputs": {
+        "integration": {
+          "required": ["architecture.json"],
+          "dynamic": ["all_generated_code"]
+        }
+      },
+      "outputs": {
+        "integration": "code/integration/"
+      },
+      "skip_condition": "single_component_feature"
+    },
+    {
+      "phase": 6,
+      "name": "finalization",
+      "description": "Validate quality and generate documentation",
+      "agents": ["validation", "documentation"],
+      "parallel": true,
+      "blocking": true,
+      "timeout_minutes": 10,
+      "retry_limit": 2,
+      "inputs": {
+        "validation": {
+          "required": ["requirements.json"],
+          "dynamic": ["all_generated_code", "all_tests"]
+        },
+        "documentation": {
+          "required": ["architecture.json"],
+          "dynamic": ["all_generated_code"]
+        }
+      },
+      "outputs": {
+        "validation": "validation/validation.json",
+        "documentation": "docs/"
+      },
+      "success_criteria": {
+        "validation": {
+          "tests_pass": true,
+          "lint_pass": true,
+          "coverage_min": 0.7
+        }
+      },
+      "on_validation_failure": {
+        "action": "retry_generation_phase",
+        "max_retries": 2,
+        "target_agents": "failed_components_only"
+      }
+    }
+  ],
+  
+  "global_settings": {
+    "max_total_duration_minutes": 60,
+    "max_total_tokens": 150000,
+    "state_persistence": true,
+    "event_logging": true,
+    "artifact_validation": true
+  },
+  
+  "recovery_strategies": {
+    "agent_failure": {
+      "strategy": "retry_with_backoff",
+      "max_retries": 3,
+      "backoff_multiplier": 2,
+      "initial_delay_seconds": 5
+    },
+    "phase_failure": {
+      "strategy": "pause_and_report",
+      "allow_partial_completion": false
+    },
+    "timeout": {
+      "strategy": "extend_once",
+      "extension_multiplier": 1.5
+    }
+  },
+  
+  "metrics_collection": {
+    "per_agent": ["tokens_used", "duration_ms", "retries", "confidence_score"],
+    "per_phase": ["total_tokens", "total_duration_ms", "agents_succeeded", "agents_failed"],
+    "workflow": ["total_tokens", "total_duration_ms", "phases_completed", "final_status"]
+  }
+}

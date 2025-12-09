@@ -1,0 +1,262 @@
+{
+  "$schema": "workflow-pattern-v1",
+  "pattern_id": "concurrent-full",
+  "name": "Concurrent Full",
+  "description": "Maximum parallelization for complex full-stack features requiring all agent types",
+  
+  "applicability": {
+    "request_types": ["NEW_FEATURE", "REFACTOR"],
+    "complexity": ["COMPLEX", "LARGE"],
+    "domains": ["FULLSTACK"],
+    "indicators": [
+      "Requires both frontend and backend changes",
+      "Database schema changes needed",
+      "Multiple integration points",
+      "Significant new functionality"
+    ]
+  },
+  
+  "phases": [
+    {
+      "phase": 1,
+      "name": "requirements",
+      "description": "Extract and structure requirements",
+      "agents": ["requirements-analyst"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 8,
+      "success_criteria": {
+        "min_confidence": 0.6,
+        "max_blocking_clarifications": 2
+      }
+    },
+    {
+      "phase": 2,
+      "name": "research",
+      "description": "Parallel codebase and documentation research",
+      "agents": ["research-codebase", "research-docs"],
+      "parallel": true,
+      "blocking": true,
+      "timeout_minutes": 15,
+      "success_criteria": {
+        "min_patterns_found": 1,
+        "min_docs_fetched": 1
+      }
+    },
+    {
+      "phase": 3,
+      "name": "architecture",
+      "description": "Design system architecture",
+      "agents": ["architecture"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 15,
+      "human_gate": {
+        "condition": "always",
+        "prompt": "Review architecture design before proceeding to implementation",
+        "timeout_minutes": 60,
+        "default_action": "proceed"
+      },
+      "success_criteria": {
+        "min_confidence": 0.7,
+        "required_sections": ["components", "file_structure", "implementation_phases"]
+      }
+    },
+    {
+      "phase": 4,
+      "name": "data-layer",
+      "description": "Generate database schema and models first",
+      "agents": ["database"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 15,
+      "skip_conditions": [
+        {"field": "architecture.components", "not_contains_type": "model"},
+        {"field": "architecture.components", "not_contains_type": "storage"}
+      ],
+      "success_criteria": {
+        "migrations_valid": true
+      }
+    },
+    {
+      "phase": 5,
+      "name": "generation",
+      "description": "Parallel code generation for all layers",
+      "agents": ["codegen-backend", "codegen-frontend", "test-generation"],
+      "parallel": true,
+      "blocking": true,
+      "timeout_minutes": 30,
+      "agent_dependencies": {
+        "codegen-backend": ["database"],
+        "codegen-frontend": [],
+        "test-generation": ["codegen-backend", "codegen-frontend"]
+      },
+      "execution_order": {
+        "wave_1": ["codegen-backend", "codegen-frontend"],
+        "wave_2": ["test-generation"]
+      },
+      "success_criteria": {
+        "all_components_generated": true,
+        "tests_generated": true
+      }
+    },
+    {
+      "phase": 6,
+      "name": "integration",
+      "description": "Connect all components",
+      "agents": ["integration"],
+      "parallel": false,
+      "blocking": true,
+      "timeout_minutes": 15,
+      "success_criteria": {
+        "all_components_wired": true,
+        "no_missing_imports": true
+      }
+    },
+    {
+      "phase": 7,
+      "name": "finalization",
+      "description": "Validation and documentation in parallel",
+      "agents": ["validation", "documentation"],
+      "parallel": true,
+      "blocking": true,
+      "timeout_minutes": 20,
+      "success_criteria": {
+        "tests_pass": true,
+        "lint_pass": true,
+        "coverage_min": 0.75,
+        "docs_generated": true
+      },
+      "on_validation_failure": {
+        "action": "retry_generation",
+        "max_retries": 2,
+        "target": "failed_components"
+      }
+    }
+  ],
+  
+  "agent_context_budgets": {
+    "requirements-analyst": {"min": 3000, "max": 10000},
+    "research-codebase": {"min": 5000, "max": 15000},
+    "research-docs": {"min": 5000, "max": 20000},
+    "architecture": {"min": 10000, "max": 25000},
+    "database": {"min": 4000, "max": 12000},
+    "codegen-backend": {"min": 8000, "max": 20000},
+    "codegen-frontend": {"min": 8000, "max": 20000},
+    "test-generation": {"min": 8000, "max": 18000},
+    "integration": {"min": 10000, "max": 25000},
+    "validation": {"min": 5000, "max": 15000},
+    "documentation": {"min": 5000, "max": 12000}
+  },
+  
+  "artifact_routing": {
+    "requirements-analyst": {
+      "produces": ["requirements.json"],
+      "consumers": ["research-codebase", "research-docs", "architecture", "validation"]
+    },
+    "research-codebase": {
+      "produces": ["research/codebase.json"],
+      "consumers": ["architecture", "codegen-backend", "codegen-frontend", "database"]
+    },
+    "research-docs": {
+      "produces": ["research/docs.json"],
+      "consumers": ["architecture", "codegen-backend", "codegen-frontend"]
+    },
+    "architecture": {
+      "produces": ["architecture/architecture.json"],
+      "consumers": ["database", "codegen-backend", "codegen-frontend", "test-generation", "integration", "documentation"]
+    },
+    "database": {
+      "produces": ["code/database/"],
+      "consumers": ["codegen-backend", "test-generation", "integration"]
+    },
+    "codegen-backend": {
+      "produces": ["code/backend/"],
+      "consumers": ["test-generation", "integration", "validation"]
+    },
+    "codegen-frontend": {
+      "produces": ["code/frontend/"],
+      "consumers": ["test-generation", "integration", "validation"]
+    },
+    "test-generation": {
+      "produces": ["tests/"],
+      "consumers": ["validation"]
+    },
+    "integration": {
+      "produces": ["code/integration/"],
+      "consumers": ["validation"]
+    },
+    "validation": {
+      "produces": ["validation/"],
+      "consumers": ["documentation"]
+    },
+    "documentation": {
+      "produces": ["docs/"],
+      "consumers": []
+    }
+  },
+  
+  "global_settings": {
+    "max_total_duration_minutes": 120,
+    "max_total_tokens": 200000,
+    "state_persistence": true,
+    "event_logging": true,
+    "parallel_execution_limit": 4,
+    "checkpoint_after_phases": [3, 5, 7]
+  },
+  
+  "recovery_strategies": {
+    "agent_failure": {
+      "action": "retry_with_backoff",
+      "max_retries": 3,
+      "backoff_multiplier": 1.5,
+      "initial_delay_seconds": 5
+    },
+    "phase_failure": {
+      "action": "pause_and_report",
+      "allow_skip": false,
+      "require_human_decision": true
+    },
+    "timeout": {
+      "action": "extend_once",
+      "extension_multiplier": 1.5,
+      "then": "fail"
+    },
+    "context_overflow": {
+      "action": "compress_and_retry",
+      "compression_strategy": "summarize_artifacts",
+      "max_compression_attempts": 2
+    }
+  },
+  
+  "quality_gates": {
+    "after_phase_3": {
+      "name": "Architecture Review",
+      "type": "human_optional",
+      "criteria": ["components_defined", "phases_planned", "risks_identified"]
+    },
+    "after_phase_7": {
+      "name": "Final Quality Check",
+      "type": "automated",
+      "criteria": {
+        "tests_pass": true,
+        "coverage_min": 0.75,
+        "lint_errors": 0,
+        "type_errors": 0,
+        "security_issues_high": 0
+      }
+    }
+  },
+  
+  "metrics_collection": {
+    "per_agent": ["tokens_used", "duration_ms", "retries", "confidence_score", "artifacts_produced"],
+    "per_phase": ["total_tokens", "total_duration", "agents_succeeded", "agents_failed"],
+    "workflow": ["total_tokens", "total_duration", "phases_completed", "final_status", "quality_score"]
+  },
+  
+  "estimated_resources": {
+    "typical_tokens": 120000,
+    "typical_duration_minutes": 60,
+    "agent_invocations": 11
+  }
+}

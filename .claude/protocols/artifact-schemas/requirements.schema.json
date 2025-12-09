@@ -1,0 +1,259 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "requirements-artifact-v1",
+  "title": "Requirements Artifact",
+  "description": "Structured requirements output from the Requirements Analyst Agent",
+  "type": "object",
+  "required": [
+    "$schema",
+    "workflow_id",
+    "created_at",
+    "agent",
+    "version",
+    "summary",
+    "functional_requirements",
+    "non_functional_requirements",
+    "metadata"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "requirements-artifact-v1"
+    },
+    "workflow_id": {
+      "type": "string",
+      "pattern": "^wf_[0-9]{8}_[0-9]{6}$",
+      "description": "Unique workflow identifier"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of artifact creation"
+    },
+    "agent": {
+      "type": "string",
+      "const": "requirements-analyst"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "summary": {
+      "type": "object",
+      "required": ["title", "description", "estimated_complexity"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Brief feature title"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "2-3 sentence summary"
+        },
+        "estimated_complexity": {
+          "type": "string",
+          "enum": ["simple", "medium", "complex", "large"]
+        }
+      }
+    },
+    "functional_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "priority", "category", "success_criteria"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^FR-[0-9]{3}$",
+            "description": "Unique requirement ID"
+          },
+          "description": {
+            "type": "string",
+            "description": "Clear, testable description"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low"]
+          },
+          "category": {
+            "type": "string",
+            "description": "Category grouping"
+          },
+          "success_criteria": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "description": "Measurable acceptance criteria"
+          },
+          "dependencies": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "IDs of dependent requirements"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Additional context"
+          }
+        }
+      }
+    },
+    "non_functional_requirements": {
+      "type": "object",
+      "properties": {
+        "performance": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/nfr_item" }
+        },
+        "security": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/nfr_item" }
+        },
+        "scalability": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/nfr_item" }
+        },
+        "reliability": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/nfr_item" }
+        },
+        "maintainability": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/nfr_item" }
+        },
+        "usability": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/nfr_item" }
+        }
+      }
+    },
+    "technical_constraints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "constraint", "source"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^TC-[0-9]{3}$"
+          },
+          "constraint": { "type": "string" },
+          "source": { "type": "string" },
+          "impact": { "type": "string" }
+        }
+      }
+    },
+    "integrations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "system", "type", "description"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^INT-[0-9]{3}$"
+          },
+          "system": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["internal", "external", "third-party"]
+          },
+          "description": { "type": "string" },
+          "documentation_url": { 
+            "type": ["string", "null"],
+            "format": "uri"
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "assumption", "risk_if_wrong"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^ASM-[0-9]{3}$"
+          },
+          "assumption": { "type": "string" },
+          "risk_if_wrong": { "type": "string" }
+        }
+      }
+    },
+    "clarifications_needed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "question", "context", "blocking"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^CLR-[0-9]{3}$"
+          },
+          "question": { "type": "string" },
+          "context": { "type": "string" },
+          "blocking": { "type": "boolean" },
+          "suggested_default": { "type": "string" }
+        }
+      }
+    },
+    "out_of_scope": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "references": {
+      "type": "object",
+      "properties": {
+        "documentation_urls": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" }
+        },
+        "example_files": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "related_features": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["source_file", "tokens_used", "confidence_score"],
+      "properties": {
+        "source_file": { "type": "string" },
+        "tokens_used": { 
+          "type": "integer",
+          "minimum": 0
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "analysis_duration_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "definitions": {
+    "nfr_item": {
+      "type": "object",
+      "required": ["id", "requirement"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^NFR-[A-Z]+-[0-9]{3}$"
+        },
+        "requirement": { "type": "string" },
+        "measurement": { "type": "string" },
+        "compliance": { "type": "string" }
+      }
+    }
+  }
+}
