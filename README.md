@@ -1,17 +1,35 @@
 # Context Engineering: Agentic Workflow System
 
-This originally started from coleam00's [https://github.com/coleam00/context-engineering-intro](context-engineering-intro), but I've changed a LOT, especially and specifically passing off context into smaller and more specialized agents to do work, leaving the main context for orchestration.
+A multi-agent workflow system for AI-assisted software development. Based on [coleam00's context-engineering-intro](https://github.com/coleam00/context-engineering-intro), heavily modified to pass context into smaller, specialized agents while keeping the main context for orchestration.
+
+## Quick Start
+
+1. **Create a feature request** in `PRPs/00-Requests/`:
+   ```markdown
+   ## FEATURE:
+   Describe what you want to build...
+
+   ## EXAMPLES:
+   - examples/relevant/file.py
+
+   ## DOCUMENTATION:
+   - https://docs.example.com/api
+   ```
+
+2. **Initialize workflow**: `/init-workflow PRPs/00-Requests/my-feature.md`
+
+3. **Monitor progress**: `/workflow-status <workflow-id>`
+
+4. **Resume if paused**: `/resume-workflow <workflow-id>`
 
 ## Overview
-
-A multi-agent workflow system for AI-assisted software development. Transforms monolithic AI interactions into coordinated, specialized agent workflows.
 
 Instead of one large AI agent trying to do everything, this system uses **specialized agents** that each handle a specific concern:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         ORCHESTRATOR                                 │
-│                    (Coordinates everything)                          │
+│                         ORCHESTRATOR                                │
+│                    (Coordinates everything)                         │
 └────────────────────────────┬────────────────────────────────────────┘
                              │
          ┌───────────────────┼───────────────────┐
@@ -39,204 +57,178 @@ Instead of one large AI agent trying to do everything, this system uses **specia
 
 | Monolithic Approach      | Multi-Agent Approach         |
 | ------------------------ | ---------------------------- |
-| 100k+ tokens per feature | ~70k tokens (42% reduction)  |
+| 100k+ tokens per feature | ~70k tokens (40-60% savings) |
 | Sequential execution     | Parallel where possible      |
 | Single point of failure  | Fault-tolerant with recovery |
 | Generic prompts          | Specialized expertise        |
-| Difficult to debug       | Clear agent boundaries       |
 
-## Quick Start
+## Project Structure
 
-### 1. Create a Feature Request
-
-Create a file in `PRPs/00-Requests/`:
-
-```markdown
-## FEATURE:
-
-Describe what you want to build...
-
-## EXAMPLES:
-
-- examples/relevant/file.py - What to reference
-
-## DOCUMENTATION:
-
-- https://docs.example.com/api
-
-## OTHER CONSIDERATIONS:
-
-Any constraints, gotchas, or special requirements
+```
+├── .claude/
+│   ├── agents/              # Specialized agent definitions (agent.md)
+│   ├── commands/            # Slash commands (init-workflow, status, resume)
+│   ├── orchestration/       # Workflow patterns (sequential, concurrent, etc.)
+│   └── protocols/           # Artifact schemas for agent communication
+├── PRPs/                    # Feature requests & outputs
+│   ├── 00-Requests/         # Initial feature requests
+│   ├── 01-Requirements/     # Structured requirements
+│   ├── 02-Research/         # Research artifacts
+│   ├── 03-Architecture/     # Design documents
+│   ├── 10-Generated-Code/   # Code outputs
+│   ├── 20-Validated/        # Passed validation
+│   ├── 30-Deployed/         # Shipped features
+│   └── 99-Archive/          # Completed/abandoned
+├── use-cases/               # Example implementations
+├── research/                # Research documents
+└── workflows/               # Runtime state (created when workflows run)
 ```
 
-### 2. Initialize Workflow
+## Workflow Patterns
+
+| Pattern | Best For | Flow |
+|---------|----------|------|
+| Sequential Simple | Bug fixes, docs, small changes | Requirements → Research → Codegen → Validation |
+| Concurrent Standard | New features | Requirements → [Research ‖ Research] → Architecture → [Backend ‖ Frontend ‖ Tests] → Validation |
+| Concurrent Full | Complex full-stack | All agents in parallel where possible |
+| Hierarchical Modular | Large refactors | Sub-workflows for each module |
+
+## Workflow Versions
+
+This system includes three workflow initialization commands with progressive capabilities:
+
+| Version | Command | Input Sources | Output Directory | Checkpoints |
+|---------|---------|---------------|------------------|-------------|
+| V1 | `/init-workflow` | File path | `workflows/wf_*` | None |
+| V2 | `/init-workflow-v2` | File path | `workflows/wf_YYYYMMDD_HHMMSS/` | None |
+| V3 | `/init-workflow-v3` | GitHub, GitLab, files | `workflows/YYYY-MM-DD_{slug}/` | Yes |
+
+### V1: Basic (`/init-workflow`)
+
+The original implementation with basic state tracking.
 
 ```bash
 /init-workflow PRPs/00-Requests/my-feature.md
 ```
 
-This will:
+### V2: Enhanced (`/init-workflow-v2`)
 
-- Analyze your request
-- Select the appropriate workflow pattern
-- Create a workflow with unique ID
-- Begin executing agents
+Adds structured clarification handling and improved state management.
 
-### 3. Monitor Progress
+**Key Features:**
+- Clarification handling (blocking vs optional questions)
+- Event logging to `events.log`
+- Domain-specific agent selection for code generation
+- 6-phase execution plan
 
+**Directory Structure:**
+```
+workflows/wf_20241208_154530/
+├── request.md          # Copy of original request
+├── state.json          # Workflow state
+├── events.log          # Event history
+└── artifacts/
+    ├── requirements/
+    ├── research/
+    ├── architecture/
+    ├── code/
+    ├── tests/
+    ├── validation/
+    └── docs/
+```
+
+**Usage:**
 ```bash
-/workflow-status wf_20241125_143022
+/init-workflow-v2 PRPs/00-Requests/my-feature.md
 ```
 
-### 4. Resume if Paused
+### V3: Full Featured (`/init-workflow-v3`) - Recommended
 
+The most complete implementation with human-in-the-loop checkpoints and multi-source input support.
+
+**Key Features:**
+- **Multi-source input**: GitHub issues, GitLab issues, or local files
+- **Human-readable run IDs**: `2024-12-08_add-jwt-authentication`
+- **Checkpoint gates**: Approval required after each phase
+- **Slim mode**: Token optimization by passing only essential context to agents
+- **Auto-increment**: Handles duplicate runs on same day (`-2`, `-3`, etc.)
+
+**Input Sources:**
 ```bash
-/resume-workflow wf_20241125_143022
+# GitHub issue
+/init-workflow-v3 gh#123
+/init-workflow-v3 https://github.com/owner/repo/issues/123
+
+# GitLab issue
+/init-workflow-v3 gl#456
+/init-workflow-v3 https://gitlab.com/owner/repo/-/issues/456
+
+# Local file
+/init-workflow-v3 prompts/my-feature.md
 ```
 
-## Commands
-
-| Command                 | Description                    |
-| ----------------------- | ------------------------------ |
-| `/init-workflow <file>` | Start new multi-agent workflow |
-| `/workflow-status [id]` | Check workflow status          |
-| `/resume-workflow <id>` | Resume paused/failed workflow  |
-
-## Workflow Patterns
-
-### Sequential Simple
-
-Best for: Bug fixes, documentation, simple changes
-
+**Directory Structure:**
 ```
-Requirements → Research → Codegen → Validation
+runs/2024-12-08_add-jwt-authentication/
+├── prompt.md           # Copy of original prompt or fetched issue
+├── state.json          # Workflow state with checkpoints
+├── events.log          # Event history
+└── artifacts/
+    ├── requirements/
+    ├── research/
+    ├── architecture/
+    ├── code/
+    ├── tests/
+    ├── validation/
+    └── docs/
 ```
 
-### Concurrent Standard
+**Checkpoint Types:**
+| Type | When Used | Description |
+|------|-----------|-------------|
+| `quick` | Research, Integration | Simple y/n confirmation |
+| `review` | Requirements, Architecture, Generation | Detailed artifact review |
+| `summary` | Finalization | Comprehensive workflow report |
 
-Best for: New features, enhancements
+**Slim Mode:**
 
-```
-Requirements → [Research || Research] → Architecture →
-[Backend || Frontend || Tests] → Integration → Validation
-```
+When enabled (`config.slim_mode: true`), agents receive only:
+- Role & core responsibility
+- Output artifact schema
+- Run ID and paths
+- Previous phase artifact **summaries** (not full content)
 
-### Concurrent Full
+This reduces token usage while maintaining agent effectiveness.
 
-Best for: Complex full-stack features
+## Agents
 
-```
-Requirements → [Research || Docs] → Architecture →
-[Backend || Frontend || Database || Tests] →
-Integration → [Validation || Documentation]
-```
+| Agent | Responsibility |
+|-------|----------------|
+| orchestrator | Coordinate workflow execution |
+| requirements-analyst | Extract and structure requirements |
+| research-codebase | Find patterns in existing code |
+| research-docs | Gather external documentation |
+| architecture | Design technical solutions |
+| codegen-backend | Generate backend code |
+| codegen-frontend | Generate frontend code |
+| database | Handle data layer code |
+| test-generation | Create test suites |
+| integration | Connect components |
+| validation | Verify quality |
+| documentation | Generate docs |
 
-### Hierarchical Modular
+## State & Recovery
 
-Best for: Large refactors, multi-module changes
-
-```
-Requirements → Architecture →
-  [Sub-workflow A] ||
-  [Sub-workflow B] ||
-  [Sub-workflow N] →
-Integration → Validation
-```
-
-## Project Structure
-
-```
-context-engineering-agentic/
-├── .claude/
-│   ├── commands/                  # User-facing commands
-│   │   ├── init-workflow.md
-│   │   ├── workflow-status.md
-│   │   └── resume-workflow.md
-│   ├── agents/                    # Agent definitions
-│   │   ├── orchestrator/
-│   │   ├── requirements-analyst/
-│   │   └── ...
-│   ├── orchestration/             # Workflow patterns
-│   │   └── patterns/
-│   └── protocols/                 # Schemas & standards
-│       └── artifact-schemas/
-├── workflows/                     # Active workflow state
-│   └── {workflow_id}/
-│       ├── state.json
-│       ├── artifacts/
-│       ├── logs/
-│       └── events.log
-├── PRPs/                          # Feature requests & outputs
-│   ├── 00-Requests/
-│   ├── 01-Requirements/
-│   └── ...
-├── examples/                      # Code examples
-├── CLAUDE.md                      # Project rules
-└── README.md
-```
-
-## Agent Reference
-
-| Agent                | Responsibility         | Context Budget |
-| -------------------- | ---------------------- | -------------- |
-| orchestrator         | Coordinate workflow    | 2k-5k tokens   |
-| requirements-analyst | Structure requirements | 3k-8k tokens   |
-| research-codebase    | Find code patterns     | 5k-15k tokens  |
-| research-docs        | Gather documentation   | 5k-20k tokens  |
-| architecture         | Design solution        | 8k-20k tokens  |
-| codegen-backend      | Generate backend code  | 5k-15k tokens  |
-| codegen-frontend     | Generate frontend code | 5k-15k tokens  |
-| database             | Handle data layer      | 4k-12k tokens  |
-| test-generation      | Create test suites     | 5k-15k tokens  |
-| integration          | Connect components     | 8k-20k tokens  |
-| validation           | Verify quality         | 5k-15k tokens  |
-| documentation        | Generate docs          | 5k-12k tokens  |
-
-## State Management
-
-Workflow state is persisted to `workflows/{id}/state.json` after every significant action:
-
-- Agent starts/completes
-- Phase transitions
-- Errors occur
-- Human input received
-
-This enables:
-
-- **Recovery**: Resume from any failure point
-- **Debugging**: See exactly what happened
-- **Monitoring**: Track progress in real-time
-
-## Error Handling
-
-| Error Type             | Recovery Strategy                      |
-| ---------------------- | -------------------------------------- |
-| Agent timeout          | Retry with extended timeout (up to 3x) |
-| Validation failure     | Re-run affected codegen agents         |
-| Missing artifact       | Re-run producer agent                  |
-| Context overflow       | Pause, suggest simplification          |
-| Blocking clarification | Pause for human input                  |
-
-## Token Efficiency
-
-The multi-agent approach is more token-efficient because:
-
-1. **Context Isolation**: Each agent only sees what it needs
-2. **Artifact Compression**: Research agents create summaries
-3. **No Redundancy**: Information loaded once, passed via artifacts
-4. **Parallel Processing**: Multiple agents don't share context
-
-Typical savings: **40-60%** compared to monolithic approach.
+- Workflow state persists to `workflows/{id}/state.json`
+- Errors trigger retry (max 3) or pause for human input
+- Resume any workflow with `/resume-workflow <id>`
 
 ## Contributing
 
 To add a new agent:
-
-1. Create directory in `.claude/agents/{agent-name}/`
-2. Add `agent.md` with role definition
-3. Add `capabilities.json` with metadata
-4. Update workflow patterns to include agent
-5. Add artifact schema if new output type
+1. Create `.claude/agents/{agent-name}/agent.md`
+2. Update workflow patterns to include agent
+3. Add artifact schema if new output type
 
 ## License
 
